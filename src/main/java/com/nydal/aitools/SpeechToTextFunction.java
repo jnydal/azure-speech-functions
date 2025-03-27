@@ -23,59 +23,13 @@ public class SpeechToTextFunction {
             String apiKey = ConfigHelper.getSpeechApiKey();
             URI endpoint = URI.create(ConfigHelper.getSpeechEndpoint());
 
-            System.out.println("RESOLVING PROPERTIES");
-
             // Initialize Speech API Config
             SpeechConfig speechConfig = SpeechConfig.fromEndpoint(endpoint, apiKey);
 
-            System.out.println("INIT SpeechConfig");
-
             // Get audio stream from HTTP request
             InputStream audioStream = request.getBody().orElseThrow(() -> new IllegalArgumentException("Audio stream not found"));
-
-            System.out.println("get audiostream...");
-
             // Call method to process streaming
-            System.out.println("create stringbuilder...");
-            StringBuilder transcript = new StringBuilder();
-
-            System.out.println("get  pushstream...");
-
-            // Create PushAudioInputStream for real-time streaming
-            PushAudioInputStream pushStream = AudioInputStream.createPushStream();
-            AudioConfig audioConfig = AudioConfig.fromStreamInput(pushStream);
-            SpeechRecognizer recognizer = new SpeechRecognizer(speechConfig, audioConfig);
-
-            System.out.println("create speech recognizer");
-
-            // Event Listener for recognized speech
-            recognizer.recognized.addEventListener((s, e) -> {
-                if (e.getResult().getReason() == ResultReason.RecognizedSpeech) {
-                    String text = e.getResult().getText();
-                    context.getLogger().info("Recognized: " + text);
-                    transcript.append(text).append(" ");
-                }
-            });
-
-            // Start recognition
-            recognizer.startContinuousRecognitionAsync().get();
-
-            // Feed audio data into the PushAudioInputStream
-            byte[] buffer = new byte[4096];
-            int bytesRead;
-            try {
-                while ((bytesRead = audioStream.read(buffer)) != -1) {
-                    pushStream.write(buffer);
-                }
-            } catch (Exception e) {
-                context.getLogger().severe("Error reading audio stream: " + e.getMessage());
-            }
-
-            // Stop recognition
-            recognizer.stopContinuousRecognitionAsync().get();
-            pushStream.close();
-
-            System.out.println("TRANSCRIPT: " + transcript.toString());
+            String transcript = processAudioStream(audioStream, speechConfig, context);
 
             // Return the transcribed text
             return request.createResponseBuilder(HttpStatus.OK)
@@ -91,17 +45,12 @@ public class SpeechToTextFunction {
     }
 
     protected String processAudioStream(InputStream audioStream, SpeechConfig speechConfig, final ExecutionContext context) throws ExecutionException, InterruptedException {
-        System.out.println("create stringbuilder...");
         StringBuilder transcript = new StringBuilder();
-
-        System.out.println("get  pushstream...");
 
         // Create PushAudioInputStream for real-time streaming
         PushAudioInputStream pushStream = AudioInputStream.createPushStream();
         AudioConfig audioConfig = AudioConfig.fromStreamInput(pushStream);
         SpeechRecognizer recognizer = new SpeechRecognizer(speechConfig, audioConfig);
-
-        System.out.println("create speech recognizer");
 
         // Event Listener for recognized speech
         recognizer.recognized.addEventListener((s, e) -> {
@@ -130,7 +79,6 @@ public class SpeechToTextFunction {
         recognizer.stopContinuousRecognitionAsync().get();
         pushStream.close();
 
-        System.out.println("TRANSCRIPT: " + transcript.toString());
         return transcript.toString();
     }
 }
