@@ -24,6 +24,13 @@
             <version>${azure.functions.java.library.version}</version>
         </dependency>
 
+        <!-- Azure Cognitive Services Speech SDK -->
+        <dependency>
+            <groupId>com.microsoft.cognitiveservices.speech</groupId>
+            <artifactId>client-sdk</artifactId>
+            <version>1.43.0</version>
+        </dependency>
+
         <!-- Jackson Core dependency -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -42,7 +49,7 @@
         <dependency>
             <groupId>com.microsoft.cognitiveservices.speech</groupId>
             <artifactId>client-sdk</artifactId>
-            <version>1.26.0</version>
+            <version>1.43.0</version>
         </dependency>
 
         <!-- Test -->

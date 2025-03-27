@@ -1,53 +1,136 @@
 package com.nydal.aitools;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.azure.functions.annotation.*;
 import com.microsoft.azure.functions.*;
-import com.microsoft.azure.functions.annotation.AuthorizationLevel;
-import com.microsoft.azure.functions.annotation.FunctionName;
-import com.microsoft.azure.functions.annotation.HttpTrigger;
 
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.io.*;
+import com.microsoft.cognitiveservices.speech.*;
+import com.microsoft.cognitiveservices.speech.audio.*;
+
+import java.io.InputStream;
+import java.net.URI;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 public class SpeechToTextFunction {
-    private static final String SPEECH_API_KEY = System.getenv("AZURE_SPEECH_KEY");
-    private static final String SPEECH_REGION = System.getenv("AZURE_SPEECH_REGION");
 
-    @FunctionName("speechToText")
+    @FunctionName("realTimeSpeechToText")
     public HttpResponseMessage run(
-            @HttpTrigger(name = "req", methods = {HttpMethod.POST}, authLevel = AuthorizationLevel.FUNCTION)
-            HttpRequestMessage<Optional<String>> request, final ExecutionContext context) {
-
-        context.getLogger().info("Speech-to-Text function triggered.");
-
+            @HttpTrigger(name = "req", methods = {HttpMethod.POST}, authLevel = AuthorizationLevel.FUNCTION) HttpRequestMessage<Optional<InputStream>> request,
+            final ExecutionContext context
+    ) {
         try {
-            String audioBase64 = request.getBody().get();
-            String transcript = processSpeech(audioBase64);
-            return request.createResponseBuilder(HttpStatus.OK).body(transcript).build();
+            // Get API Key and Endpoint from environment variables
+            String apiKey = ConfigHelper.getSpeechApiKey();
+            URI endpoint = URI.create(ConfigHelper.getSpeechEndpoint());
+
+            System.out.println("RESOLVING PROPERTIES");
+
+            // Initialize Speech API Config
+            SpeechConfig speechConfig = SpeechConfig.fromEndpoint(endpoint, apiKey);
+
+            System.out.println("INIT SpeechConfig");
+
+            // Get audio stream from HTTP request
+            InputStream audioStream = request.getBody().orElseThrow(() -> new IllegalArgumentException("Audio stream not found"));
+
+            System.out.println("get audiostream...");
+
+            // Call method to process streaming
+            System.out.println("create stringbuilder...");
+            StringBuilder transcript = new StringBuilder();
+
+            System.out.println("get  pushstream...");
+
+            // Create PushAudioInputStream for real-time streaming
+            PushAudioInputStream pushStream = AudioInputStream.createPushStream();
+            AudioConfig audioConfig = AudioConfig.fromStreamInput(pushStream);
+            SpeechRecognizer recognizer = new SpeechRecognizer(speechConfig, audioConfig);
+
+            System.out.println("create speech recognizer");
+
+            // Event Listener for recognized speech
+            recognizer.recognized.addEventListener((s, e) -> {
+                if (e.getResult().getReason() == ResultReason.RecognizedSpeech) {
+                    String text = e.getResult().getText();
+                    context.getLogger().info("Recognized: " + text);
+                    transcript.append(text).append(" ");
+                }
+            });
+
+            // Start recognition
+            recognizer.startContinuousRecognitionAsync().get();
+
+            // Feed audio data into the PushAudioInputStream
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            try {
+                while ((bytesRead = audioStream.read(buffer)) != -1) {
+                    pushStream.write(buffer);
+                }
+            } catch (Exception e) {
+                context.getLogger().severe("Error reading audio stream: " + e.getMessage());
+            }
+
+            // Stop recognition
+            recognizer.stopContinuousRecognitionAsync().get();
+            pushStream.close();
+
+            System.out.println("TRANSCRIPT: " + transcript.toString());
+
+            // Return the transcribed text
+            return request.createResponseBuilder(HttpStatus.OK)
+                    .body(transcript)
+                    .build();
+
         } catch (Exception e) {
-            context.getLogger().severe("Error processing speech: " + e.getMessage());
-            return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR).body("Error").build();
+            context.getLogger().severe("Error: " + e.getMessage());
+            return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error processing speech: " + e.getMessage())
+                    .build();
         }
     }
 
-    private String processSpeech(String audioBase64) throws Exception {
-        URL url = new URL("https://" + SPEECH_REGION + ".stt.speech.microsoft.com/speech-to-text/v3.1/transcriptions");
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("Ocp-Apim-Subscription-Key", SPEECH_API_KEY);
-        conn.setRequestProperty("Content-Type", "audio/wav");
-        conn.setDoOutput(true);
+    protected String processAudioStream(InputStream audioStream, SpeechConfig speechConfig, final ExecutionContext context) throws ExecutionException, InterruptedException {
+        System.out.println("create stringbuilder...");
+        StringBuilder transcript = new StringBuilder();
 
-        byte[] audioBytes = java.util.Base64.getDecoder().decode(audioBase64);
-        OutputStream os = conn.getOutputStream();
-        os.write(audioBytes);
-        os.close();
+        System.out.println("get  pushstream...");
 
-        BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-        JsonNode responseJson = new ObjectMapper().readTree(br);
-        return responseJson.path("DisplayText").asText();
+        // Create PushAudioInputStream for real-time streaming
+        PushAudioInputStream pushStream = AudioInputStream.createPushStream();
+        AudioConfig audioConfig = AudioConfig.fromStreamInput(pushStream);
+        SpeechRecognizer recognizer = new SpeechRecognizer(speechConfig, audioConfig);
+
+        System.out.println("create speech recognizer");
+
+        // Event Listener for recognized speech
+        recognizer.recognized.addEventListener((s, e) -> {
+            if (e.getResult().getReason() == ResultReason.RecognizedSpeech) {
+                String text = e.getResult().getText();
+                context.getLogger().info("Recognized: " + text);
+                transcript.append(text).append(" ");
+            }
+        });
+
+        // Start recognition
+        recognizer.startContinuousRecognitionAsync().get();
+
+        // Feed audio data into the PushAudioInputStream
+        byte[] buffer = new byte[4096];
+        int bytesRead;
+        try {
+            while ((bytesRead = audioStream.read(buffer)) != -1) {
+                pushStream.write(buffer);
+            }
+        } catch (Exception e) {
+            context.getLogger().severe("Error reading audio stream: " + e.getMessage());
+        }
+
+        // Stop recognition
+        recognizer.stopContinuousRecognitionAsync().get();
+        pushStream.close();
+
+        System.out.println("TRANSCRIPT: " + transcript.toString());
+        return transcript.toString();
     }
 }
