@@ -45,11 +45,6 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_4913918424394CF1B011CDF2DE01FCAF }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_B25CA4A5CC204A058229FCA02DD679F1 }}
 
-      - name: Set up Azure environment variables
-        run: |
-          echo "AZURE_SPEECH_ENDPOINT=${{ secrets.AZURE_SPEECH_ENDPOINT }}" >> $GITHUB_ENV
-          echo "AZURE_SPEECH_API_KEY=${{ secrets.AZURE_SPEECH_API_KEY }}" >> $GITHUB_ENV
-
       - name: 'Run Azure Functions Action'
         uses: Azure/functions-action@v1
         id: fa

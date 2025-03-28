@@ -15,7 +15,7 @@ public class ConfigHelper {
     public static String getSpeechEndpoint() {
         String endpoint = System.getenv("AZURE_SPEECH_ENDPOINT");
         if (isNull(endpoint)) {
-            return "";
+            return "http://dummy.com";
         }
         return endpoint;
     }

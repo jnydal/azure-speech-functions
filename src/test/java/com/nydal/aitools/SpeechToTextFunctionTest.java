@@ -36,6 +36,10 @@ public class SpeechToTextFunctionTest {
 
     @Test
     public void testRun_withValidAudio_returnsTranscript() throws Exception {
+        // Mock HttpResponseMessage and its builder
+        HttpResponseMessage.Builder responseBuilder = mock(HttpResponseMessage.Builder.class);
+        HttpResponseMessage mockResponse = mock(HttpResponseMessage.class);
+
         // Prepare mock input stream and other necessary mock behavior
         String mockTranscript = "Hello World";
         byte[] audioData = new byte[] {1, 2, 3, 4, 5}; // Some mock audio data
@@ -48,15 +52,13 @@ public class SpeechToTextFunctionTest {
         SpeechToTextFunction spyFunction = Mockito.spy(function);
         doReturn(result).when(spyFunction).processAudioStream(mockAudioStream, speechConfig, context);
 
-        // Mock HttpResponseMessage and its builder
-        HttpResponseMessage.Builder responseBuilder = mock(HttpResponseMessage.Builder.class);
-        HttpResponseMessage mockResponse = mock(HttpResponseMessage.class);
+        // Ensure createResponseBuilder returns the responseBuilder mock
         when(request.createResponseBuilder(HttpStatus.OK)).thenReturn(responseBuilder);
         when(responseBuilder.body(any())).thenReturn(responseBuilder);
         when(responseBuilder.status(HttpStatus.OK)).thenReturn(responseBuilder);
-        when(responseBuilder.build()).thenReturn(mockResponse);
         when(mockResponse.getBody()).thenReturn(mockTranscript);
         when(mockResponse.getStatus()).thenReturn(HttpStatus.OK);
+        when(responseBuilder.build()).thenReturn(mockResponse);
 
         // Call the function
         HttpResponseMessage response = spyFunction.run(request, context);
@@ -66,45 +68,5 @@ public class SpeechToTextFunctionTest {
         assertEquals(HttpStatus.OK, response.getStatus());
         assertEquals(mockTranscript, response.getBody());
     }
-/*
-    @Test
-    public void testRun_withNoAudio_returnsError() {
-        // Simulate no audio in the request
-        when(request.getBody()).thenReturn(Optional.empty());
 
-        // Call the function
-        HttpResponseMessage response = function.run(request, context);
-
-        // Assertions
-        assertNotNull(response);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
-        assertTrue(response.getBody().toString().contains("Error processing speech"));
-    }
-
-    @Test
-    public void testProcessAudioStream_withValidData_returnsTranscript() throws ExecutionException, InterruptedException {
-        // Mock speechConfig
-        SpeechConfig speechConfig = mock(SpeechConfig.class);
-
-        // Mock ExecutionContext
-        ExecutionContext context = mock(ExecutionContext.class);
-
-        // Prepare a mock audio input stream
-        byte[] audioData = new byte[] {1, 2, 3, 4, 5};
-        InputStream audioStream = new ByteArrayInputStream(audioData);
-
-        // Create a spy of SpeechToTextFunction to mock the behavior of the processAudioStream method
-        SpeechToTextFunction spyFunction = Mockito.spy(function);
-        String expectedTranscript = "Mocked Transcript";
-
-        // Mock the processing behavior
-        doReturn(expectedTranscript).when(spyFunction).processAudioStream(any(InputStream.class), any(SpeechConfig.class), any(ExecutionContext.class));
-
-        // Call the method directly for testing processAudioStream logic
-        String result = spyFunction.processAudioStream(audioStream, speechConfig, context);
-
-        // Assertions
-        assertNotNull(result);
-        assertEquals(expectedTranscript, result);
-    }*/
 }
