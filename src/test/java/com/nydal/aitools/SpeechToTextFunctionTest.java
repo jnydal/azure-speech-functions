@@ -55,6 +55,7 @@ public class SpeechToTextFunctionTest {
         // Ensure createResponseBuilder returns the responseBuilder mock
         when(request.createResponseBuilder(HttpStatus.OK)).thenReturn(responseBuilder);
         when(responseBuilder.body(any())).thenReturn(responseBuilder);
+        when(responseBuilder.header(any(), any())).thenReturn(responseBuilder);
         when(responseBuilder.status(HttpStatus.OK)).thenReturn(responseBuilder);
         when(mockResponse.getBody()).thenReturn(mockTranscript);
         when(mockResponse.getStatus()).thenReturn(HttpStatus.OK);
