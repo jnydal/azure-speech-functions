@@ -34,6 +34,7 @@ public class SpeechToTextFunction {
             // Return the transcribed text
             return request.createResponseBuilder(HttpStatus.OK)
                     .body(transcript)
+                    .header("Access-Control-Allow-Origin", "https://jnydal.github.io")
                     .build();
 
         } catch (Exception e) {
