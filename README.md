@@ -1,8 +1,8 @@
 # Azre Speech Functions
 
-Serverless wrappers around Azure AI Speech (Text-to-Speech & Speech-to-Text) built with Azure Functions for Java.  
-Use these HTTP endpoints from browsers or backends without exposing your Speech key client-side.
-> Tech stack: Java · Maven · Azure Functions (v4) · Azure AI Speech
+Azure Speech Functions is a lightweight, production-ready gateway for Azure AI Speech.
+It lets any web app, chatbot, or backend securely access text-to-speech and speech-to-text without ever exposing your Azure key.
+Built on Java and Azure Functions, it deploys in minutes and scales automatically — perfect for integrating natural voice capabilities into web apps, kiosks, IVR systems, virtual assistants, or content-generation tools.
 
 ---
 
