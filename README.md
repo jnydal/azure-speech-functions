@@ -2,7 +2,7 @@
 
 Azure Speech Functions is a lightweight, production-ready gateway for Azure AI Speech.
 It lets any web app, chatbot, or backend securely access text-to-speech and speech-to-text without ever exposing your Azure key.
-Built on Java and Azure Functions, it deploys in minutes and scales automatically — perfect for integrating natural voice capabilities into web apps, kiosks, IVR systems, virtual assistants, or content-generation tools.
+Built on Java and Azure Functions, it deploys in minutes and scales automatically. It is perfect for integrating natural voice capabilities into web apps, kiosks, IVR systems, virtual assistants, or content-generation tools.
 
 ---
 
